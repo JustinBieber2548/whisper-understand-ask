@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Pkchatbot" },
+      { name: "description", content: "Ask Away Helper is an AI-powered chatbot that understands files and answers user queries." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Pkchatbot" },
+      { property: "og:description", content: "Ask Away Helper is an AI-powered chatbot that understands files and answers user queries." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Pkchatbot" },
+      { name: "twitter:description", content: "Ask Away Helper is an AI-powered chatbot that understands files and answers user queries." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/130b5c92-7ea8-4cfb-9d33-e8e2cdde8006/id-preview-e5f5909b--b2af08db-ad7f-484a-8ec5-ba01d4d7ff85.lovable.app-1781142276103.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/130b5c92-7ea8-4cfb-9d33-e8e2cdde8006/id-preview-e5f5909b--b2af08db-ad7f-484a-8ec5-ba01d4d7ff85.lovable.app-1781142276103.png" },
     ],
     links: [
       {
