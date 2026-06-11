@@ -2,7 +2,9 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { MessageCircle, X, Send } from "lucide-react";
 import { submitLead } from "@/lib/leads.functions";
+import logo from "@/assets/pk-logo.png.asset.json";
 
 const transport = new DefaultChatTransport({ api: "/api/chat" });
 
@@ -13,20 +15,19 @@ const initialMessages: UIMessage[] = [
     parts: [
       {
         type: "text",
-        text: "สวัสดีครับ! I'm PK Supply Chain's assistant. How can I help you today? (Ask anything, or leave your name & email and we'll follow up.)",
+        text: "Hi! I'm PK's assistant. Ask me anything about our supply chain services — or leave your details and we'll follow up.",
       },
     ],
   },
 ];
 
-function getText(m: UIMessage) {
-  return m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
-}
+const getText = (m: UIMessage) =>
+  m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [leadOpen, setLeadOpen] = useState(false);
+  const [showLead, setShowLead] = useState(false);
   const [lead, setLead] = useState({ name: "", email: "", message: "" });
   const [leadStatus, setLeadStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -35,13 +36,12 @@ export function ChatWidget() {
     transport,
     messages: initialMessages,
   });
-
   const submitLeadFn = useServerFn(submitLead);
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, leadOpen]);
+  }, [messages, showLead]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,14 +51,14 @@ export function ChatWidget() {
     await sendMessage({ text });
   };
 
-  const handleLeadSubmit = async (e: React.FormEvent) => {
+  const handleLead = async (e: React.FormEvent) => {
     e.preventDefault();
     setLeadStatus("sending");
     try {
       await submitLeadFn({ data: lead });
       setLeadStatus("ok");
       setTimeout(() => {
-        setLeadOpen(false);
+        setShowLead(false);
         setLead({ name: "", email: "", message: "" });
         setLeadStatus("idle");
       }, 1500);
@@ -73,32 +73,47 @@ export function ChatWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Open chat"
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl ring-4 ring-primary/15 transition hover:scale-105"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <MessageCircle className="h-6 w-6" />
         </button>
       )}
 
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[600px] max-h-[85vh] w-[380px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
-          <header className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
-            <div>
-              <div className="font-semibold">PK Supply Chain</div>
-              <div className="text-xs opacity-80">We typically reply instantly</div>
+        <div className="fixed bottom-6 right-6 z-50 flex h-[560px] max-h-[85vh] w-[370px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
+          {/* Header */}
+          <header className="flex items-center gap-3 bg-secondary px-4 py-3 text-secondary-foreground">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white p-1">
+              <img src={logo.url} alt="PK" className="h-full w-full object-contain" />
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close" className="rounded p-1 hover:bg-white/10">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <div className="flex-1">
+              <div className="text-sm font-semibold leading-tight">PK Supply Chain</div>
+              <div className="flex items-center gap-1.5 text-xs opacity-80">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                Online — replies instantly
+              </div>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+              className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100"
+            >
+              <X className="h-5 w-5" />
             </button>
           </header>
 
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-muted/30 p-4">
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-muted/30 px-4 py-4">
             {messages.map((m) => (
-              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                key={m.id}
+                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
                 <div
-                  className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm ${
+                  className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
                     m.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background border border-border text-foreground"
+                      ? "rounded-br-sm bg-primary text-primary-foreground"
+                      : "rounded-bl-sm border border-border bg-background text-foreground"
                   }`}
                 >
                   {getText(m)}
@@ -107,21 +122,26 @@ export function ChatWidget() {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-                  typing…
+                <div className="flex gap-1 rounded-2xl border border-border bg-background px-3 py-2.5">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
                 </div>
               </div>
             )}
 
-            {leadOpen && (
-              <form onSubmit={handleLeadSubmit} className="space-y-2 rounded-xl border border-border bg-background p-3">
-                <div className="text-sm font-medium">Leave your details</div>
+            {showLead && (
+              <form
+                onSubmit={handleLead}
+                className="space-y-2 rounded-xl border border-border bg-background p-3 shadow-sm"
+              >
+                <div className="text-sm font-semibold text-foreground">Leave your details</div>
                 <input
                   required
-                  placeholder="Name"
+                  placeholder="Your name"
                   value={lead.name}
                   onChange={(e) => setLead({ ...lead, name: e.target.value })}
-                  className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
                 <input
                   required
@@ -129,7 +149,7 @@ export function ChatWidget() {
                   placeholder="Email"
                   value={lead.email}
                   onChange={(e) => setLead({ ...lead, email: e.target.value })}
-                  className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
                 <textarea
                   required
@@ -137,54 +157,56 @@ export function ChatWidget() {
                   rows={2}
                   value={lead.message}
                   onChange={(e) => setLead({ ...lead, message: e.target.value })}
-                  className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                  className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     disabled={leadStatus === "sending"}
-                    className="flex-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                    className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
                   >
                     {leadStatus === "sending" ? "Sending…" : leadStatus === "ok" ? "Sent ✓" : "Send"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLeadOpen(false)}
-                    className="rounded-md border border-input px-3 py-1.5 text-sm"
+                    onClick={() => setShowLead(false)}
+                    className="rounded-lg border border-input px-3 py-2 text-sm hover:bg-muted"
                   >
                     Cancel
                   </button>
                 </div>
                 {leadStatus === "err" && (
-                  <div className="text-xs text-destructive">Couldn't send. Try again.</div>
+                  <div className="text-xs text-destructive">Couldn't send. Please try again.</div>
                 )}
               </form>
             )}
           </div>
 
+          {/* Composer */}
           <div className="border-t border-border bg-background p-3">
-            {!leadOpen && (
+            {!showLead && (
               <button
-                onClick={() => setLeadOpen(true)}
-                className="mb-2 w-full rounded-md border border-input bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                onClick={() => setShowLead(true)}
+                className="mb-2 w-full rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
               >
-                📝 Leave name & email for follow-up
+                Leave your name & email
               </button>
             )}
-            <form onSubmit={handleSend} className="flex gap-2">
+            <form onSubmit={handleSend} className="flex items-center gap-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your message…"
+                placeholder="Type a message…"
                 disabled={isLoading}
-                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex-1 rounded-full border border-input bg-muted/40 px-4 py-2 text-sm outline-none focus:border-primary focus:bg-background"
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                aria-label="Send"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
               >
-                Send
+                <Send className="h-4 w-4" />
               </button>
             </form>
           </div>
