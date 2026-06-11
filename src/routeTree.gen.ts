@@ -9,12 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as EmbedRouteImport } from './routes/embed'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WidgetJsRouteImport } from './routes/widget.js'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
+const EmbedRoute = EmbedRouteImport.update({
+  id: '/embed',
+  path: '/embed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WidgetJsRoute = WidgetJsRouteImport.update({
+  id: '/widget/js',
+  path: '/widget/js',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -25,37 +37,59 @@ const ApiChatRoute = ApiChatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/embed': typeof EmbedRoute
   '/api/chat': typeof ApiChatRoute
+  '/widget/js': typeof WidgetJsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/embed': typeof EmbedRoute
   '/api/chat': typeof ApiChatRoute
+  '/widget/js': typeof WidgetJsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/embed': typeof EmbedRoute
   '/api/chat': typeof ApiChatRoute
+  '/widget/js': typeof WidgetJsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/chat'
+  fullPaths: '/' | '/embed' | '/api/chat' | '/widget/js'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/chat'
-  id: '__root__' | '/' | '/api/chat'
+  to: '/' | '/embed' | '/api/chat' | '/widget/js'
+  id: '__root__' | '/' | '/embed' | '/api/chat' | '/widget/js'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EmbedRoute: typeof EmbedRoute
   ApiChatRoute: typeof ApiChatRoute
+  WidgetJsRoute: typeof WidgetJsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/embed': {
+      id: '/embed'
+      path: '/embed'
+      fullPath: '/embed'
+      preLoaderRoute: typeof EmbedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/widget/js': {
+      id: '/widget/js'
+      path: '/widget/js'
+      fullPath: '/widget/js'
+      preLoaderRoute: typeof WidgetJsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -70,7 +104,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EmbedRoute: EmbedRoute,
   ApiChatRoute: ApiChatRoute,
+  WidgetJsRoute: WidgetJsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
