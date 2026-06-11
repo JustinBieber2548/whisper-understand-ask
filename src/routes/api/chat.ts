@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
 const SYSTEM_PROMPT = `You are PK Supply Chain's friendly assistant chatbot on their website.
 
@@ -24,7 +24,12 @@ export const Route = createFileRoute("/api/chat")({
         const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
         if (!key) return new Response("Missing GOOGLE_GENERATIVE_AI_API_KEY", { status: 500 });
 
-        const google = createGoogleGenerativeAI({ apiKey: key });
+        const google = createOpenAICompatible({
+          name: "google",
+          baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+          apiKey: key,
+        });
+
         const result = streamText({
           model: google("gemini-1.5-flash"),
           system: SYSTEM_PROMPT,
