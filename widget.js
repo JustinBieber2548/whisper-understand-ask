@@ -2,16 +2,10 @@
   if (window.__pkChatLoaded) return;
   window.__pkChatLoaded = true;
 
-  // ── state ──────────────────────────────────────────────────────────────
-  var API_KEY = '';          // filled at runtime from meta tag or left blank for server-side
-  var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-  var MODEL = 'gemini-2.5-flash';
-  var history = [
-    { role: 'assistant', content: "Hi! I'm PK's assistant. Ask me anything about our supply chain services — or leave your details and we'll follow up." }
-  ];
+  var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  var history = [];
   var SYSTEM = "You are PK Supply Chain's friendly assistant chatbot on their website.\n\nYour goals:\n1. Answer questions about PK Supply Chain's services (conveyor systems, assembly lines, maintenance, spare parts).\n2. Collect leads naturally: when a visitor shows interest, politely ask for their name, email, and what they need.\n3. Once you have name + email + inquiry, confirm someone will follow up at pongchai@pksupplychain.com.\n4. Be concise, warm, and professional. Reply in the same language the user writes (Thai or English).\n\nIf you don't know a specific answer, say so and offer to forward the question.";
 
-  // ── styles ─────────────────────────────────────────────────────────────
   var style = document.createElement('style');
   style.textContent = [
     '#pk-chat-btn{position:fixed;bottom:24px;right:24px;z-index:2147483646;width:56px;height:56px;border-radius:50%;background:#1a56db;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;transition:transform .2s}',
@@ -20,7 +14,6 @@
     '#pk-chat-box{position:fixed;bottom:90px;right:24px;z-index:2147483647;width:370px;max-width:95vw;height:520px;max-height:85vh;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);display:none;flex-direction:column;overflow:hidden;font-family:system-ui,sans-serif;font-size:14px}',
     '#pk-chat-box.open{display:flex}',
     '#pk-chat-header{background:#1a56db;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}',
-    '#pk-chat-header img{width:32px;height:32px;border-radius:50%;background:#fff;object-fit:contain;padding:2px}',
     '#pk-chat-header-info{flex:1}',
     '#pk-chat-header-info b{display:block;font-size:14px}',
     '#pk-chat-header-info span{font-size:11px;opacity:.85}',
@@ -44,7 +37,6 @@
   ].join('');
   document.head.appendChild(style);
 
-  // ── HTML ───────────────────────────────────────────────────────────────
   var btn = document.createElement('button');
   btn.id = 'pk-chat-btn';
   btn.setAttribute('aria-label', 'Open chat');
@@ -73,15 +65,11 @@
   var input = document.getElementById('pk-chat-input');
   var sendBtn = document.getElementById('pk-chat-send');
 
-  // ── render history ─────────────────────────────────────────────────────
-  function renderMessages() {
-    messagesEl.innerHTML = '';
-    history.forEach(function(m) {
-      var div = document.createElement('div');
-      div.className = 'pk-msg ' + (m.role === 'user' ? 'user' : 'bot');
-      div.textContent = m.content;
-      messagesEl.appendChild(div);
-    });
+  function addMessage(role, text) {
+    var div = document.createElement('div');
+    div.className = 'pk-msg ' + (role === 'user' ? 'user' : 'bot');
+    div.textContent = text;
+    messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
@@ -99,48 +87,52 @@
     if (t) t.remove();
   }
 
-  renderMessages();
+  // show welcome message
+  addMessage('bot', "Hi! I'm PK's assistant. Ask me anything about our supply chain services — or leave your details and we'll follow up.");
 
-  // ── send message ───────────────────────────────────────────────────────
   async function sendMessage() {
     var text = input.value.trim();
     if (!text) return;
     input.value = '';
     sendBtn.disabled = true;
 
-    history.push({ role: 'user', content: text });
-    renderMessages();
+    addMessage('user', text);
+    history.push({ role: 'user', parts: [{ text: text }] });
     addTyping();
 
     try {
-      var messages = [{ role: 'system', content: SYSTEM }].concat(history);
-      var isAQKey = window.PK_GEMINI_KEY.startsWith('AQ.');
-      var url = isAQKey ? GEMINI_URL : GEMINI_URL + '?key=' + window.PK_GEMINI_KEY;
-      var headers = { 'Content-Type': 'application/json' };
-      if (isAQKey) headers['Authorization'] = 'Bearer ' + window.PK_GEMINI_KEY;
-      var res = await fetch(url, {
+      var body = {
+        system_instruction: { parts: [{ text: SYSTEM }] },
+        contents: history
+      };
+
+      var res = await fetch(GEMINI_URL + '?key=' + window.PK_GEMINI_KEY, {
         method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ model: MODEL, messages: messages })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       });
+
       var data = await res.json();
-      var reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content
-        ? data.choices[0].message.content
-        : 'Sorry, something went wrong. Please try again.';
+
+      if (!res.ok) {
+        console.error('Gemini error:', data);
+        throw new Error(data.error && data.error.message || 'API error');
+      }
+
+      var reply = data.candidates[0].content.parts[0].text;
+      history.push({ role: 'model', parts: [{ text: reply }] });
       removeTyping();
-      history.push({ role: 'assistant', content: reply });
-      renderMessages();
+      addMessage('bot', reply);
     } catch(e) {
       removeTyping();
-      history.push({ role: 'assistant', content: 'Sorry, I could not connect. Please try again.' });
-      renderMessages();
+      console.error(e);
+      addMessage('bot', 'Sorry, I could not connect. Please try again.');
     }
 
     sendBtn.disabled = false;
     input.focus();
   }
 
-  // ── events ─────────────────────────────────────────────────────────────
   btn.addEventListener('click', function() { box.classList.add('open'); input.focus(); });
   document.getElementById('pk-chat-close').addEventListener('click', function() { box.classList.remove('open'); });
   sendBtn.addEventListener('click', sendMessage);
