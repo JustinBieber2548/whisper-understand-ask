@@ -5,7 +5,7 @@
   // ── state ──────────────────────────────────────────────────────────────
   var API_KEY = '';          // filled at runtime from meta tag or left blank for server-side
   var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-  var MODEL = 'gemini-2.5-flash-preview-05-20';
+  var MODEL = 'gemini-2.5-flash';
   var history = [
     { role: 'assistant', content: "Hi! I'm PK's assistant. Ask me anything about our supply chain services — or leave your details and we'll follow up." }
   ];
@@ -114,9 +114,13 @@
 
     try {
       var messages = [{ role: 'system', content: SYSTEM }].concat(history);
-      var res = await fetch(GEMINI_URL + '?key=' + window.PK_GEMINI_KEY, {
+      var isAQKey = window.PK_GEMINI_KEY.startsWith('AQ.');
+      var url = isAQKey ? GEMINI_URL : GEMINI_URL + '?key=' + window.PK_GEMINI_KEY;
+      var headers = { 'Content-Type': 'application/json' };
+      if (isAQKey) headers['Authorization'] = 'Bearer ' + window.PK_GEMINI_KEY;
+      var res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({ model: MODEL, messages: messages })
       });
       var data = await res.json();
