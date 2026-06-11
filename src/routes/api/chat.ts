@@ -1,43 +1,143 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+(function () {
+  if (window.__pkChatLoaded) return;
+  window.__pkChatLoaded = true;
 
-const SYSTEM_PROMPT = `You are PK Supply Chain's friendly assistant chatbot on their website.
+  var GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+  var history = [];
+  var SYSTEM = "You are PK Supply Chain's friendly assistant chatbot on their website.\n\nYour goals:\n1. Answer questions about PK Supply Chain's services (conveyor systems, assembly lines, maintenance, spare parts).\n2. Collect leads naturally: when a visitor shows interest, politely ask for their name, email, and what they need.\n3. Once you have name + email + inquiry, confirm someone will follow up at pongchai@pksupplychain.com.\n4. Be concise, warm, and professional. Reply in the same language the user writes (Thai or English).\n\nIf you don't know a specific answer, say so and offer to forward the question.";
 
-Your goals:
-1. Answer questions about PK Supply Chain's services (logistics, supply chain consulting, freight, warehousing, etc.).
-2. Collect leads naturally: when a visitor shows interest, politely ask for their name, email, and what they need help with.
-3. Once you have name + email + inquiry, confirm you'll have someone follow up at pongchai@pksupplychain.com.
-4. Be concise, warm, and professional. Reply in the same language the user writes (Thai or English).
+  var style = document.createElement('style');
+  style.textContent = [
+    '#pk-chat-btn{position:fixed;bottom:24px;right:24px;z-index:2147483646;width:56px;height:56px;border-radius:50%;background:#1a56db;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;transition:transform .2s}',
+    '#pk-chat-btn:hover{transform:scale(1.08)}',
+    '#pk-chat-btn svg{width:26px;height:26px;fill:white}',
+    '#pk-chat-box{position:fixed;bottom:90px;right:24px;z-index:2147483647;width:370px;max-width:95vw;height:520px;max-height:85vh;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);display:none;flex-direction:column;overflow:hidden;font-family:system-ui,sans-serif;font-size:14px}',
+    '#pk-chat-box.open{display:flex}',
+    '#pk-chat-header{background:#1a56db;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}',
+    '#pk-chat-header-info{flex:1}',
+    '#pk-chat-header-info b{display:block;font-size:14px}',
+    '#pk-chat-header-info span{font-size:11px;opacity:.85}',
+    '#pk-chat-close{background:none;border:none;color:#fff;cursor:pointer;font-size:20px;line-height:1;padding:4px;opacity:.8}',
+    '#pk-chat-close:hover{opacity:1}',
+    '#pk-chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#f8f9fa}',
+    '.pk-msg{max-width:82%;padding:9px 13px;border-radius:16px;line-height:1.5;word-break:break-word}',
+    '.pk-msg.bot{background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:4px;align-self:flex-start}',
+    '.pk-msg.user{background:#1a56db;color:#fff;border-bottom-right-radius:4px;align-self:flex-end}',
+    '.pk-typing{display:flex;gap:4px;padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;border-bottom-left-radius:4px;align-self:flex-start}',
+    '.pk-typing span{width:7px;height:7px;border-radius:50%;background:#999;animation:pkbounce 1s infinite}',
+    '.pk-typing span:nth-child(2){animation-delay:.15s}',
+    '.pk-typing span:nth-child(3){animation-delay:.3s}',
+    '@keyframes pkbounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}',
+    '#pk-chat-footer{padding:10px 12px;border-top:1px solid #e5e7eb;background:#fff;display:flex;gap:8px;align-items:center}',
+    '#pk-chat-input{flex:1;border:1px solid #d1d5db;border-radius:999px;padding:8px 16px;font-size:13px;outline:none;background:#f8f9fa}',
+    '#pk-chat-input:focus{border-color:#1a56db;background:#fff}',
+    '#pk-chat-send{width:36px;height:36px;border-radius:50%;background:#1a56db;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}',
+    '#pk-chat-send:disabled{opacity:.4;cursor:default}',
+    '#pk-chat-send svg{width:16px;height:16px;fill:white}'
+  ].join('');
+  document.head.appendChild(style);
 
-If you don't know a specific answer about PK, say so honestly and offer to forward the question.`;
+  var btn = document.createElement('button');
+  btn.id = 'pk-chat-btn';
+  btn.setAttribute('aria-label', 'Open chat');
+  btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg>';
 
-export const Route = createFileRoute("/api/chat")({
-  server: {
-    handlers: {
-      POST: async ({ request }) => {
-        const { messages } = (await request.json()) as { messages?: UIMessage[] };
-        if (!Array.isArray(messages)) {
-          return new Response("Messages are required", { status: 400 });
-        }
+  var box = document.createElement('div');
+  box.id = 'pk-chat-box';
+  box.innerHTML = [
+    '<div id="pk-chat-header">',
+    '  <div id="pk-chat-header-info"><b>PK Supply Chain</b><span>🟢 Online — replies instantly</span></div>',
+    '  <button id="pk-chat-close" aria-label="Close">×</button>',
+    '</div>',
+    '<div id="pk-chat-messages"></div>',
+    '<div id="pk-chat-footer">',
+    '  <input id="pk-chat-input" placeholder="Type a message…" autocomplete="off"/>',
+    '  <button id="pk-chat-send" aria-label="Send">',
+    '    <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>',
+    '  </button>',
+    '</div>'
+  ].join('');
 
-        const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-        if (!key) return new Response("Missing GOOGLE_GENERATIVE_AI_API_KEY", { status: 500 });
+  document.body.appendChild(btn);
+  document.body.appendChild(box);
 
-        const google = createOpenAICompatible({
-          name: "google",
-          baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-          apiKey: key,
-        });
+  var messagesEl = document.getElementById('pk-chat-messages');
+  var input = document.getElementById('pk-chat-input');
+  var sendBtn = document.getElementById('pk-chat-send');
 
-        const result = streamText({
-          model: google("gemini-3-flash-preview"),
-          system: SYSTEM_PROMPT,
-          messages: await convertToModelMessages(messages),
-        });
+  function addMessage(role, text) {
+    var div = document.createElement('div');
+    div.className = 'pk-msg ' + (role === 'user' ? 'user' : 'bot');
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 
-        return result.toUIMessageStreamResponse({ originalMessages: messages });
-      },
-    },
-  },
-});
+  function addTyping() {
+    var div = document.createElement('div');
+    div.className = 'pk-typing';
+    div.id = 'pk-typing';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTyping() {
+    var t = document.getElementById('pk-typing');
+    if (t) t.remove();
+  }
+
+  addMessage('bot', "Hi! I'm PK's assistant. Ask me anything about our supply chain services — or leave your details and we'll follow up.");
+
+  async function sendMessage() {
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    sendBtn.disabled = true;
+
+    addMessage('user', text);
+    history.push({ role: 'user', parts: [{ text: text }] });
+    addTyping();
+
+    try {
+      var messages = [{ role: 'system', content: SYSTEM }].concat(
+        history.map(function(m) {
+          return { role: m.role === 'model' ? 'assistant' : m.role, content: m.parts[0].text };
+        })
+      );
+
+      var res = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + window.PK_GROQ_KEY
+        },
+        body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: messages })
+      });
+
+      var data = await res.json();
+
+      if (!res.ok) {
+        console.error('Groq error:', JSON.stringify(data));
+        throw new Error(data.error && data.error.message || 'API error');
+      }
+
+      var reply = data.choices[0].message.content;
+      history.push({ role: 'model', parts: [{ text: reply }] });
+      removeTyping();
+      addMessage('bot', reply);
+    } catch(e) {
+      removeTyping();
+      console.error(e);
+      addMessage('bot', 'Sorry, I could not connect. Please try again.');
+    }
+
+    sendBtn.disabled = false;
+    input.focus();
+  }
+
+  btn.addEventListener('click', function() { box.classList.add('open'); input.focus(); });
+  document.getElementById('pk-chat-close').addEventListener('click', function() { box.classList.remove('open'); });
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', function(e) { if (e.key === 'Enter') sendMessage(); });
+})();
