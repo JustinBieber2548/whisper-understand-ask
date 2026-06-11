@@ -2,7 +2,7 @@
   if (window.__pkChatLoaded) return;
   window.__pkChatLoaded = true;
 
-  var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
   var history = [];
   var SYSTEM = "You are PK Supply Chain's friendly assistant chatbot on their website.\n\nYour goals:\n1. Answer questions about PK Supply Chain's services (conveyor systems, assembly lines, maintenance, spare parts).\n2. Collect leads naturally: when a visitor shows interest, politely ask for their name, email, and what they need.\n3. Once you have name + email + inquiry, confirm someone will follow up at pongchai@pksupplychain.com.\n4. Be concise, warm, and professional. Reply in the same language the user writes (Thai or English).\n\nIf you don't know a specific answer, say so and offer to forward the question.";
 
@@ -87,7 +87,6 @@
     if (t) t.remove();
   }
 
-  // show welcome message
   addMessage('bot', "Hi! I'm PK's assistant. Ask me anything about our supply chain services — or leave your details and we'll follow up.");
 
   async function sendMessage() {
@@ -106,16 +105,19 @@
         contents: history
       };
 
-      var res = await fetch(GEMINI_URL + '?key=' + window.PK_GEMINI_KEY, {
+      var res = await fetch(GEMINI_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': window.PK_GEMINI_KEY
+        },
         body: JSON.stringify(body)
       });
 
       var data = await res.json();
 
       if (!res.ok) {
-        console.error('Gemini error:', data);
+        console.error('Gemini error:', JSON.stringify(data));
         throw new Error(data.error && data.error.message || 'API error');
       }
 
