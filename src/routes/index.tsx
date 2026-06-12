@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "PK Supply Chain — Chatbot Install" },
-      { name: "description", content: "Install snippet for the PK Supply Chain AI chatbot widget." },
+      { name: "description", content: "Install the PK Supply Chain bilingual AI sales and support chatbot." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -27,12 +27,14 @@ function Install() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto max-w-2xl px-6 py-16">
+      <div className="mx-auto max-w-3xl px-6 py-14">
         <div className="mb-8 flex items-center gap-3">
           <img src={logo.url} alt="PK" className="h-10 w-10 object-contain" />
           <div>
-            <div className="text-xl font-bold text-secondary">PK Chat Widget</div>
-            <div className="text-sm text-muted-foreground">Install on any page in 1 line.</div>
+            <div className="text-xl font-bold text-secondary">PK Supply Chain AI Chat Widget</div>
+            <div className="text-sm text-muted-foreground">
+              Bilingual sales and support for conveyor and production-system projects.
+            </div>
           </div>
         </div>
 
@@ -57,19 +59,39 @@ function Install() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-          <h2 className="text-sm font-semibold text-foreground">2. Preview</h2>
+          <h2 className="text-sm font-semibold text-foreground">2. What this version does</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            The chat bubble in the bottom-right of this page is the live widget.
+            The chat bubble on this page is the live widget. It stays compact when closed so it
+            does not block clicks on the host website.
           </p>
-          <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-            <li>• AI replies powered by Google Gemini 3 Flash</li>
-            <li>
-              • Lead form appends to{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">data/leads.txt</code> in your
-              GitHub repo
-            </li>
-            <li>• Mobile responsive (full screen on small screens)</li>
-          </ul>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              "Thai and English UI switch",
+              "PK-specific conveyor and factory-system knowledge",
+              "Lead qualification for RFQ and support requests",
+              "Image upload preview for drawings or site photos",
+              "Stores leads in data/leads.txt with #ATP",
+              "Stores uploaded lead images in data/lead-images",
+            ].map((item) => (
+              <div key={item} className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6">
+          <h2 className="text-sm font-semibold text-foreground">3. Required env vars</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Keep these on the server only. They are not exposed by the widget script.
+          </p>
+          <div className="mt-4 rounded-lg bg-secondary text-secondary-foreground">
+            <pre className="overflow-x-auto px-4 py-3 text-xs">
+              <code>{`LOVABLE_API_KEY=...
+GITHUB_TOKEN=...
+LOVABLE_AI_MODEL=google/gemini-3-flash-preview`}</code>
+            </pre>
+          </div>
         </div>
       </div>
 

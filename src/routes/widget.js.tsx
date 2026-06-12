@@ -19,9 +19,9 @@ export const Route = createFileRoute("/widget/js")({
   iframe.style.cssText = [
     'position:fixed',
     'bottom:0',
-    'right:0',
-    'width:420px',
-    'height:660px',
+    'left:0',
+    'width:104px',
+    'height:104px',
     'max-width:100vw',
     'max-height:100vh',
     'border:0',
@@ -30,17 +30,26 @@ export const Route = createFileRoute("/widget/js")({
     'color-scheme:normal',
     'pointer-events:auto'
   ].join(';');
-  function place() {
-    if (window.innerWidth < 480) {
+
+  var isOpen = false;
+  function place(open) {
+    isOpen = !!open;
+    if (isOpen && window.innerWidth < 480) {
       iframe.style.width = '100vw';
       iframe.style.height = '100vh';
-    } else {
-      iframe.style.width = '420px';
-      iframe.style.height = '660px';
+      return;
     }
+
+    iframe.style.width = isOpen ? '420px' : '104px';
+    iframe.style.height = isOpen ? '660px' : '104px';
   }
-  window.addEventListener('resize', place);
-  place();
+  window.addEventListener('resize', function () { place(isOpen); });
+  window.addEventListener('message', function (event) {
+    if (event.source !== iframe.contentWindow) return;
+    if (!event.data || event.data.type !== 'pk-chat-frame') return;
+    place(!!event.data.open);
+  });
+  place(false);
   function mount() { document.body.appendChild(iframe); }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mount);
