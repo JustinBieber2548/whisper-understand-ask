@@ -14,6 +14,7 @@ const LeadImageSchema = z.object({
 const LeadSchema = z.object({
   name: z.string().min(1).max(200),
   email: z.string().email().max(200),
+  phone: z.string().max(80).optional().default(""),
   message: z.string().min(1).max(2000),
   language: z.enum(["th", "en"]).default("th"),
   image: LeadImageSchema.optional(),
@@ -168,6 +169,7 @@ export const submitLead = createServerFn({ method: "POST" })
     const compactMessage = data.message.replace(/\s+/g, " ").trim();
     const entry = [
       `[${timestamp}] ${data.name} <${data.email}>`,
+      `phone=${data.phone || "-"}`,
       `language=${data.language}`,
       `message=${compactMessage}`,
       `image=${imagePath || "none"}`,

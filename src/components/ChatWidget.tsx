@@ -28,6 +28,7 @@ const I18N = {
     leadTitle: "ฝากข้อมูลติดต่อ",
     name: "ชื่อของคุณ",
     email: "อีเมล",
+    phone: "เบอร์โทรศัพท์",
     message: "ให้เราช่วยอะไรดีครับ?",
     attach: "แนบรูป",
     removeImage: "ลบรูป",
@@ -49,6 +50,7 @@ const I18N = {
     leadTitle: "Leave contact details",
     name: "Your name",
     email: "Email",
+    phone: "Phone number",
     message: "How can we help?",
     attach: "Attach image",
     removeImage: "Remove image",
@@ -95,7 +97,7 @@ export function ChatWidget() {
   const [language, setLanguage] = useState<Language>("th");
   const [input, setInput] = useState("");
   const [showLead, setShowLead] = useState(false);
-  const [lead, setLead] = useState({ name: "", email: "", message: "" });
+  const [lead, setLead] = useState({ name: "", email: "", phone: "", message: "" });
   const [leadImage, setLeadImage] = useState<LeadImage | null>(null);
   const [leadStatus, setLeadStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
   const [leadError, setLeadError] = useState("");
@@ -128,7 +130,7 @@ export function ChatWidget() {
   };
 
   const resetLead = () => {
-    setLead({ name: "", email: "", message: "" });
+    setLead({ name: "", email: "", phone: "", message: "" });
     setLeadImage(null);
     setLeadError("");
     setLeadStatus("idle");
@@ -168,6 +170,7 @@ export function ChatWidget() {
     const cleanLead = {
       name: lead.name.trim(),
       email: lead.email.trim(),
+      phone: lead.phone.trim(),
       message: lead.message.trim(),
     };
 
@@ -185,7 +188,7 @@ export function ChatWidget() {
       {
         id: receiptId,
         role: "user",
-        text: `${copy.leadSummary}\n${cleanLead.name}\n${cleanLead.email}\n${cleanLead.message}`,
+        text: `${copy.leadSummary}\n${cleanLead.name}\n${cleanLead.email}${cleanLead.phone ? `\n${cleanLead.phone}` : ""}\n${cleanLead.message}`,
         imageUrl: leadImage?.dataUrl,
         imageName: leadImage?.name,
       },
@@ -326,6 +329,13 @@ export function ChatWidget() {
                   placeholder={copy.email}
                   value={lead.email}
                   onChange={(e) => setLead({ ...lead, email: e.target.value })}
+                  className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="tel"
+                  placeholder={copy.phone}
+                  value={lead.phone}
+                  onChange={(e) => setLead({ ...lead, phone: e.target.value })}
                   className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary"
                 />
                 <textarea
